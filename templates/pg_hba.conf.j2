@@ -1,0 +1,36 @@
+#------------------------------------------------------------------------------
+# PostgreSQL Client Authentication Configuration File (Managed by Ansible)
+#------------------------------------------------------------------------------
+
+# TYPE    DATABASE    USER    ADDRESS    METHOD
+
+{% if postgres_cluster_hosts|length > 0 %}
+# cluster:
+{% for item in postgres_cluster_hosts %}
+host    all    all    {{ item.ip }}/32    md5
+{% endfor %}
+{% for item in postgres_cluster_hosts %}
+host    all,replication    {{ postgres_cluster_username }}    {{ item.ip }}/32    md5
+{% endfor %}
+host    all,replication    {{ postgres_cluster_username }}    127.0.0.1/32    md5
+host    all,replication    {{ postgres_cluster_username }}    ::1/128    md5
+
+{% endif %}
+{% if postgres_backup_hosts|length > 0 %}
+# backup:
+{% for item in postgres_backup_hosts %}
+host    all,replication    {{ postgres_backup_username }}    {{ item.ip }}/32    md5
+{% endfor %}
+host    all,replication    {{ postgres_backup_username }}    127.0.0.1/32    md5
+host    all,replication    {{ postgres_backup_username }}    ::1/128    md5
+
+{% endif %}
+# remote users:
+{% for item in postgres_hba_config %}
+{{ item }}
+{% endfor %}
+
+# local users:
+local    all    all    peer
+host    all    all    127.0.0.1/32    md5
+host    all    all    ::1/128    md5

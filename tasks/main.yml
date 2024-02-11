@@ -1,0 +1,15 @@
+---
+
+- name: postgres-packages
+  include_tasks: postgres-packages.yml
+  when: postgres_packages_enabled | default(True)
+  tags: [postgres-packages]
+
+- name: postgres-configure
+  include_tasks: postgres-configure.yml
+  tags: [postgres-configure, postgres-config]
+
+- name: postgres-initdb
+  include_tasks: postgres-initdb.yml
+  when: postgres_initdb_enabled | default(True)
+  tags: [postgres-initdb, postgres-start, postgres-stop, postgres-reload]

@@ -1,0 +1,135 @@
+---
+
+
+# postgres-initdb-roles: Check role exists
+
+- name: postgres-initdb-roles check role
+  shell: psql -AtX -c "select count(*) from pg_authid where rolname = '{{ postgres_role.name }}';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_exists
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles create role
+  shell: psql -AtX -c "CREATE ROLE {{ postgres_role.name }};"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role_check_exists.stdout == "0"'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+# postgres-initdb-roles: Check role options (login)
+
+- name: postgres-initdb-roles check role options (login)
+  shell: psql -AtX -c "select rolcanlogin from pg_authid where rolname = '{{ postgres_role.name }}';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_login
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles alter role LOGIN
+  shell: psql -AtX -c "ALTER ROLE {{ postgres_role.name }} LOGIN;"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role_check_login.stdout == "f" and postgres_role.login'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles alter role NOLOGIN
+  shell: psql -AtX -c "ALTER ROLE {{ postgres_role.name }} NOLOGIN;"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role_check_login.stdout == "t" and not postgres_role.login'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+# postgres-initdb-roles: Check role options (password)
+
+- name: postgres-initdb-roles check password_encryption
+  shell: psql -AtX -c "show password_encryption;"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_password_encryption
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  when: 'postgres_role.password is defined'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles check role options (password md5)
+  shell: psql -AtX -c "select case when 'md5' || md5('{{ postgres_role.password }}{{ postgres_role.name }}') = rolpassword then true else false end from pg_authid where rolname = '{{ postgres_role.name }}';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_password
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  when: 'postgres_role.password is defined and postgres_role_check_password_encryption.stdout == "md5"'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles check role options (password sha256)
+  shell: psql postgres://{{ postgres_role.name }}:{{ postgres_role.password }}@localhost:5432/postgres -AtX -c "SELECT 't';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_password
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  failed_when: False
+  when: 'postgres_role.password is defined and postgres_role_check_password_encryption.stdout != "md5"'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles alter role PASSWORD
+  shell: psql -AtX -c "ALTER ROLE {{ postgres_role.name }} PASSWORD '{{ postgres_role.password }}';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role.password is defined and postgres_role_check_password.stdout != "t"'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+# postgres-initdb-roles: Check role options (replication)
+
+- name: postgres-initdb-roles check role options (replication)
+  shell: psql -AtX -c "select rolreplication from pg_authid where rolname = '{{ postgres_role.name }}';"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check_replication
+  become: True
+  become_user: "postgres"
+  changed_when: False
+  when: 'postgres_role.replication is defined'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles alter role REPLICATION
+  shell: psql -AtX -c "ALTER ROLE {{ postgres_role.name }} REPLICATION;"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role_check_replication.stdout == "f" and postgres_role.replication'
+  tags: [postgres-initdb, postgres-initdb-roles]
+
+- name: postgres-initdb-roles alter role NOREPLICATION
+  shell: psql -AtX -c "ALTER ROLE {{ postgres_role.name }} NOREPLICATION;"
+  args:
+    executable: "/bin/bash"
+  register: postgres_role_check
+  become: True
+  become_user: "postgres"
+  when: 'postgres_role_check_replication.stdout == "t" and not postgres_role.replication'
+  tags: [postgres-initdb, postgres-initdb-roles]

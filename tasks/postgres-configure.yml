@@ -1,0 +1,216 @@
+---
+
+
+# postgres-configure: postgres environment
+
+- name: postgres-configure check postgres user
+  user:
+    name: "postgres"
+    group: "postgres"
+    home: "{{ postgres_home }}"
+    shell: "/bin/bash"
+  become: True
+  when: postgres_user_enabled
+  tags: [postgres-configure]
+
+- name: postgres-configure check tmp directory
+  file: 
+    path: "{{ item.path }}"
+    state: "directory"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  become: True
+  loop:
+    - path: "/tmp/ansible/postgres"
+      mode: "755"
+      owner: "root"
+      group: "root"
+  when: postgres_user_enabled
+  tags: [postgres-configure]
+
+- name: postgres-configure get default vars
+  copy:
+    remote_src: True
+    src: "/etc/skel/{{ item }}"
+    dest: "/tmp/ansible/postgres/{{ item }}"
+    owner: "root"
+    group: "root"
+    mode: "644"
+  become: True
+  changed_when: False
+  loop:
+    - ".bashrc"
+    - ".bash_profile"
+    - ".bash_logout"
+  when: postgres_user_enabled
+  tags: [postgres-configure]
+
+- name: postgres-configure set postgres vars
+  lineinfile:
+    path: "/tmp/ansible/postgres/{{ item.file | default('.bashrc') }}"
+    regexp: '^export {{ item.name }}='
+    line: "export {{ item.name }}={{ item.value }}"
+  become: True
+  changed_when: False
+  loop: "{{ postgres_user_vars }}"
+  when: postgres_user_enabled
+  tags: [postgres-configure]
+
+- name: postgres-configure check postgres vars
+  copy:
+    remote_src: True
+    src: "/tmp/ansible/postgres/{{ item }}"
+    dest: "{{ postgres_home }}/{{ item }}"
+    owner: "postgres"
+    group: "postgres"
+    mode: "644"
+  become: True
+  loop:
+    - ".bashrc"
+    - ".bash_profile"
+    - ".bash_logout"
+  when: postgres_user_enabled
+  tags: [postgres-configure]
+
+- name: postgres-configure check dba directory
+  file: 
+    path: "{{ item.path }}"
+    state: "directory"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  become: True
+  loop:
+    - path: "{{ postgres_home }}/dba"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+    - path: "{{ postgres_home }}/dba/log"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+    - path: "{{ postgres_home }}/dba/scripts"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+  tags: [postgres-configure]
+
+- name: postgres-configure check postgres directory
+  file: 
+    path: "{{ item.path }}"
+    state: "directory"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  become: True
+  loop:
+    - path: "{{ postgres_home }}"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+    - path: "{{ postgres_data }}"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+    - path: "{{ postgres_conf }}"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+    - path: "{{ postgres_log }}"
+      mode: "700"
+      owner: "postgres"
+      group: "postgres"
+  tags: [postgres-configure]
+
+# postgres-configure: service
+
+- name: postgres-configure check service
+  template:
+    src: "{{ postgres_service_source }}"
+    dest: "/etc/systemd/system/{{ postgres_service }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  become: True
+  tags: [postgres-configure]
+
+- name: postgres-configure daemon-reload
+  systemd:
+    daemon_reload: True
+  become: True
+  tags: [postgres-configure]
+
+# postgres-configure: postgresql.conf (native)
+
+- name: postgres-configure check config (native)
+  template:
+    src: "{{ postgres_config_source }}"
+    dest: "{{ postgres_conf }}/postgresql.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+    backup: True
+  become: True
+  when: 'postgres_cluster_type == "native"'
+  tags: [postgres-configure, postgres-config]
+
+# postgres-configure: postgresql.conf (patroni)
+
+- name: postgresql-configure get config stat (patroni)
+  stat: 
+    path: "{{ postgres_conf }}/postgresql.conf"
+  register: postgres_config_stat
+  become: True
+  when: 'postgres_cluster_type == "patroni"'
+  tags: [postgres-configure, postgres-config]
+
+- name: postgres-configure check base config (patroni)
+  template:
+    src: "{{ postgres_config_source }}"
+    dest: "{{ postgresql_conf }}/postgresql.base.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+    backup: True
+  become: True
+  when: 'postgres_cluster_type == "patroni"'
+  tags: [postgres-configure, postgres-config]
+
+- name: postgres-configure check config (patroni)
+  template:
+    src: "postgresql.conf-patroni.j2"
+    dest: "{{ postgresql_conf }}/postgresql.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+    backup: True
+  become: True
+  when: 'postgres_cluster_type == "patroni" and not postgres_config_stat.stat.exists'
+  tags: [postgres-configure, postgres-config]
+
+# postgres-configure: pg_hba.conf
+
+- name: postgresql-configure check pg_hba.conf
+  template:
+    src: "{{ postgres_hba_source }}"
+    dest: "{{ postgres_conf }}/pg_hba.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+    backup: True
+  become: True
+  tags: [postgres-configure, postgres-config]
+
+# postgres-configure: pg_ident.conf
+
+- name: postgresql-configure check pg_ident.conf
+  template:
+    src: "{{ postgres_ident_source }}"
+    dest: "{{ postgres_conf }}/pg_ident.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+    backup: True
+  become: True
+  tags: [postgres-configure, postgres-config]

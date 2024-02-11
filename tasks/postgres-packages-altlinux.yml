@@ -1,0 +1,27 @@
+---
+
+- name: postgres-packages-altlinux pkg install
+  apt_rpm:
+    name: "{{ item }}"
+    state: "present"
+    update_cache: True
+  become: True
+  loop: "{{ postgres_packages }}"
+  tags: [postgres-packages]
+
+- name: postgres-packages-altlinux ext pkg install
+  apt_rpm:
+    name: "{{ item }}"
+    state: "present"
+    update_cache: True
+  become: True
+  loop: "{{ postgres_packages_ext }}"
+  tags: [postgres-packages]
+
+- name: postgres-packages-altlinux pg-wrapper links update
+  shell: "{{ postgres_bin }}/pg-wrapper links update"
+  args:
+    executable: "/bin/bash"
+  become: True
+  when: postgres_vendor == "postgrespro"
+  tags: [postgres-packages]

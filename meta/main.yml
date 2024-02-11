@@ -1,0 +1,12 @@
+---
+
+
+galaxy_info:
+  role_name: ams.postgres.server
+  description: Configuring postgres server
+  author: Alexander Samoylov
+  license: MIT
+  min_ansible_version: 2.9
+  galaxy_tags: []
+
+dependencies: []

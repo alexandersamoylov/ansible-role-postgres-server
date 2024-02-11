@@ -1,0 +1,6 @@
+---
+
+- name: postgres-packages-altlinux
+  include_tasks: postgres-packages-altlinux.yml
+  when: os_family | lower == "altlinux"
+  tags: [postgres-packages]

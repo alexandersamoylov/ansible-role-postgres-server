@@ -1,0 +1,9 @@
+#------------------------------------------------------------------------------
+# PostgreSQL User Name Maps (Managed by Ansible)
+#------------------------------------------------------------------------------
+
+# MAPNAME    SYSTEM-USERNAME    PG-USERNAME
+
+{% for item in postgres_ident_config %}
+{{ item }}
+{% endfor %}
