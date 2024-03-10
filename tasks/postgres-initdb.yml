@@ -23,7 +23,9 @@
     executable: "/bin/bash"
   become: True
   become_user: "postgres"
-  when: 'postgres_initdb_hostname == inventory_hostname and not postgres_data_exists'
+  when: 
+    - postgres_initdb_hostname == inventory_hostname
+    - not postgres_data_exists
   tags: [postgres-initdb]
 
 - name: postgres-initdb start primary
@@ -32,7 +34,8 @@
     state: "started"
     enabled: "{{ postgres_service_enabled }}"
   become: True
-  when: 'postgres_initdb_hostname == inventory_hostname'
+  when:
+    - postgres_initdb_hostname == inventory_hostname
   tags: [postgres-initdb]
 
 # postgres-initdb: init standby
@@ -41,8 +44,8 @@
   lineinfile:
     path: "{{ postgres_home }}/.pgpass"
     create: True
-    regexp: "{{ item.ip }}:{{ postgres_port }}:replication:{{ postgres_cluster_username }}:"
-    line: "{{ item.ip }}:{{ postgres_port }}:replication:{{ postgres_cluster_username }}:{{ postgres_cluster_password }}"
+    regexp: "{{ item.ip }}:{{ postgres_port }}:replication:{{ postgres_replication }}:"
+    line: "{{ item.ip }}:{{ postgres_port }}:replication:{{ postgres_replication }}:{{ postgres_replication_password }}"
     state: "present"
     owner: "postgres"
     group: "postgres"
@@ -50,19 +53,23 @@
   become: True
   become_user: "postgres"
   loop: "{{ postgres_cluster_hosts }}"
-  when: 'postgres_cluster_type == "native"'
+  when: 
+    - postgres_cluster_type == "native"
+    - postgres_cluster_hosts | length > 0
   tags: [postgres-initdb]
 
 - name: postgres-initdb check replication role
   include_tasks: postgres-initdb-roles.yml
   loop:
-    - name: "{{ postgres_cluster_username }}"
-      password: "{{ postgres_cluster_password }}"
+    - name: "{{ postgres_replication }}"
+      password: "{{ postgres_replication_password }}"
       login: True
       replication: True
   loop_control:
     loop_var: postgres_role
-  when: 'postgres_initdb_hostname == inventory_hostname'
+  when: 
+    - postgres_initdb_hostname == inventory_hostname
+    - postgres_cluster_hosts | length > 0
   tags: [postgres-initdb]
 
 - name: postgres-initdb init standby
@@ -71,7 +78,10 @@
     executable: "/bin/bash"
   become: True
   become_user: "postgres"
-  when: 'postgres_cluster_type == "native" and postgres_initdb_hostname != inventory_hostname and not postgres_data_exists'
+  when: 
+    - postgres_cluster_type == "native"
+    - postgres_initdb_hostname != inventory_hostname
+    - not postgres_data_exists
   tags: [postgres-initdb]
 
 - name: postgres-initdb start standby
@@ -79,8 +89,11 @@
     name: "{{ postgres_service }}"
     state: "started"
     enabled: "{{ postgres_service_enabled }}"
-  become: "true"
-  when: 'postgres_cluster_type == "native" and postgres_initdb_hostname != inventory_hostname and not postgres_data_exists'
+  become: True
+  when:
+    - postgres_cluster_type == "native"
+    - postgres_initdb_hostname != inventory_hostname
+    - not postgres_data_exists
   tags: [postgres-initdb]
 
 # postgres-initdb: reload/stop/start
@@ -91,7 +104,8 @@
     executable: "/bin/bash"
   become: True
   become_user: "postgres"
-  when: 'postgres_data_exists'
+  when:
+    - postgres_data_exists
   tags: [never, postgres-reload]
 
 - name: postgres-initdb postgres-stop
@@ -100,7 +114,9 @@
     state: "stopped"
     enabled: True
   become: True
-  when: 'postgres_data_exists and postgres_service_enabled'
+  when:
+    - postgres_data_exists
+    - postgres_service_enabled
   tags: [never, postgres-stop]
 
 - name: postgres-initdb postgres-start
@@ -109,5 +125,7 @@
     state: "started"
     enabled: True
   become: True
-  when: 'postgres_data_exists and postgres_service_enabled'
+  when:
+    - postgres_data_exists
+    - postgres_service_enabled
   tags: [never, postgres-start]

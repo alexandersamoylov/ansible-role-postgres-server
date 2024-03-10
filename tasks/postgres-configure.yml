@@ -1,6 +1,5 @@
 ---
 
-
 # postgres-configure: postgres environment
 
 - name: postgres-configure check postgres user
@@ -39,10 +38,7 @@
     mode: "644"
   become: True
   changed_when: False
-  loop:
-    - ".bashrc"
-    - ".bash_profile"
-    - ".bash_logout"
+  loop: "{{ postgres_default_vars }}"
   when: postgres_user_enabled
   tags: [postgres-configure]
 
@@ -66,10 +62,7 @@
     group: "postgres"
     mode: "644"
   become: True
-  loop:
-    - ".bashrc"
-    - ".bash_profile"
-    - ".bash_logout"
+  loop: "{{ postgres_default_vars }}"
   when: postgres_user_enabled
   tags: [postgres-configure]
 
@@ -83,15 +76,15 @@
   become: True
   loop:
     - path: "{{ postgres_home }}/dba"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
     - path: "{{ postgres_home }}/dba/log"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
     - path: "{{ postgres_home }}/dba/scripts"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
   tags: [postgres-configure]
@@ -106,7 +99,7 @@
   become: True
   loop:
     - path: "{{ postgres_home }}"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
     - path: "{{ postgres_data }}"
@@ -114,11 +107,11 @@
       owner: "postgres"
       group: "postgres"
     - path: "{{ postgres_conf }}"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
     - path: "{{ postgres_log }}"
-      mode: "700"
+      mode: "755"
       owner: "postgres"
       group: "postgres"
   tags: [postgres-configure]
@@ -133,6 +126,18 @@
     group: "root"
     mode: "0644"
   become: True
+  when: 'not postgres_service_default | default(False)'
+  tags: [postgres-configure]
+
+- name: postgres-configure check start.conf
+  template:
+    src: "start.conf.j2"
+    dest: "{{ postgres_conf }}/start.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: "0644"
+  become: True
+  when: 'postgres_service_default | default(False)'
   tags: [postgres-configure]
 
 - name: postgres-configure daemon-reload

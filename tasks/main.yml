@@ -7,7 +7,7 @@
 
 - name: postgres-configure
   include_tasks: postgres-configure.yml
-  tags: [postgres-configure, postgres-config]
+  tags: [postgres-configure, postgres-conf-copy]
 
 - name: postgres-initdb
   include_tasks: postgres-initdb.yml

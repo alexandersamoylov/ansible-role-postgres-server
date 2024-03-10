@@ -10,19 +10,19 @@
 host    all    all    {{ item.ip }}/32    md5
 {% endfor %}
 {% for item in postgres_cluster_hosts %}
-host    all,replication    {{ postgres_cluster_username }}    {{ item.ip }}/32    md5
+host    replication    {{ postgres_replication }}    {{ item.ip }}/32    md5
 {% endfor %}
-host    all,replication    {{ postgres_cluster_username }}    127.0.0.1/32    md5
-host    all,replication    {{ postgres_cluster_username }}    ::1/128    md5
+host    replication    {{ postgres_replication }}    127.0.0.1/32    md5
+host    replication    {{ postgres_replication }}    ::1/128    md5
 
 {% endif %}
 {% if postgres_backup_hosts|length > 0 %}
 # backup:
 {% for item in postgres_backup_hosts %}
-host    all,replication    {{ postgres_backup_username }}    {{ item.ip }}/32    md5
+host    all,replication    {{ postgres_backup }}    {{ item.ip }}/32    md5
 {% endfor %}
-host    all,replication    {{ postgres_backup_username }}    127.0.0.1/32    md5
-host    all,replication    {{ postgres_backup_username }}    ::1/128    md5
+host    all,replication    {{ postgres_backup }}    127.0.0.1/32    md5
+host    all,replication    {{ postgres_backup }}    ::1/128    md5
 
 {% endif %}
 # remote users:

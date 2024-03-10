@@ -1,0 +1,71 @@
+---
+
+# Перед установкой основных пакетов postgres устанавливаем postgresql-common,
+# чтобы внести правки в настройки до создания экземпляра postgres
+- name: postgres-packages-astralinux common pgk install
+  apt:
+    name: "postgresql-common"
+    state: "present"
+    update_cache: True
+  become: True
+  tags: [postgres-packages]
+
+# Отключение создания экземпляра БД при установке пакета
+- name: postgres-packages-astralinux create_main_cluster disable
+  lineinfile:
+    path: "/etc/postgresql-common/createcluster.conf"
+    regexp: 'create_main_cluster'
+    line: "create_main_cluster = False"
+  become: True
+  tags: [postgres-packages]
+
+# Проверяем, добавлена ли локаль en_US.UTF-8
+- name: postgres-packages-astralinux check en_US.UTF-8 locale
+  shell: "localectl list-locales | grep en_US.utf8 | wc -l"
+  args:
+    executable: "/bin/bash"
+  register: postgres_packages_check_locale
+  become: True
+  changed_when: False
+  tags: [postgres-packages]     
+
+# Добавление локали en_US.UTF-8, если отсутствует - правим /etc/locale.gen
+- name: postgres-packages-astralinux enable en_US.UTF-8 locale
+  lineinfile:
+    path: "/etc/locale.gen"
+    regexp: 'en_US.UTF-8 UTF-8'
+    line: "en_US.UTF-8 UTF-8"
+  become: True
+  when:
+    - postgres_packages_check_locale.stdout == "0"
+  tags: [postgres-packages]
+
+# Добавление локали en_US.UTF-8, если отсутствует - выполняем locale-gen
+- name: postgres-packages-astralinux locale-gen
+  shell: "locale-gen"
+  args:
+    executable: "/bin/bash"
+  become: True
+  when:
+    - postgres_packages_check_locale.stdout == "0"
+  tags: [postgres-packages]
+
+# Установка основных пакетов postgres
+- name: postgres-packages-astralinux pkg install
+  apt:
+    name: "{{ item }}"
+    state: "present"
+    update_cache: True
+  become: True
+  loop: "{{ postgres_packages }}"
+  tags: [postgres-packages]
+
+# Установка дополнительных пакетов postgres
+- name: postgres-packages-astralinux ext pkg install
+  apt:
+    name: "{{ item }}"
+    state: "present"
+    update_cache: True
+  become: True
+  loop: "{{ postgres_packages_ext }}"
+  tags: [postgres-packages]

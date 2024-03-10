@@ -1,0 +1,76 @@
+---
+
+# facts
+
+postgres_os_family: "{{ ansible_os_family.replace(' ', '') | lower }}"
+postgres_os_memory: "{{ ansible_memtotal_mb }}"
+
+# default postgres version
+
+postgres_version_dict:
+  postgresql:
+    altlinux: "15"
+    astralinux: "11"
+  #postgrespro:
+  #  altlinux: "15"
+  #  astralinux: "15"
+
+# default altlinux options
+
+postgresql_altlinux_dict:
+  postgres_bin: "/usr/bin"
+  postgres_packages:
+    - "postgresql{{ postgres_version }}"
+    - "postgresql{{ postgres_version }}-server"
+    - "postgresql{{ postgres_version }}-contrib"
+  postgres_packages_ext: []
+  postgres_home: "/var/lib/pgsql"
+  postgres_data: "/var/lib/pgsql/data"
+  postgres_conf: "/var/lib/pgsql/conf"
+  postgres_log: "/var/log/pgsql"
+  postgres_service: "postgresql.service"
+  postgres_service_source: "postgresql.service-altlinux.j2"
+  postgres_service_default: False
+  postgres_default_vars:
+    - ".bashrc"
+    - ".bash_profile"
+    - ".bash_logout"
+
+# default astralinux options
+
+postgresql_astralinux_dict:
+  postgres_bin: "/usr/lib/postgresql/{{ postgres_version }}/bin"
+  postgres_packages:
+    - "postgresql-{{ postgres_version }}"
+  postgres_packages_ext: []
+  postgres_home: "/var/lib/postgresql"
+  postgres_data: "/var/lib/postgresql/{{ postgres_version }}/main"
+  postgres_conf: "/etc/postgresql/{{ postgres_version }}/main"
+  postgres_log: "/var/log/postgresql"
+  postgres_service: "postgresql@{{ postgres_version }}-main.service"
+  postgres_service_source: "postgresql.service-astralinux.j2"
+  postgres_service_default: True
+  postgres_default_vars:
+    - ".bashrc"
+    - ".profile"
+    - ".bash_logout"
+
+# default postgres options
+
+postgres_all_dict:
+  postgresql:
+    altlinux: "{{ postgresql_altlinux_dict }}"
+    astralinux: "{{ postgresql_astralinux_dict }}"
+  #postgrespro:
+  #  altlinux:
+  #  astralinux:
+
+postgres_dict: "{{ postgres_all_dict[postgres_vendor][postgres_os_family] }}"
+
+# default cluster options
+
+postgres_cluster_dict:
+  native:
+    postgres_service_enabled: True
+  patroni:
+    postgres_service_enabled: False

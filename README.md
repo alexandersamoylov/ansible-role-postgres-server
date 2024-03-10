@@ -1,1 +1,1 @@
-# Ansible role: ams.postgres.server
+# Ansible role: postgres.server

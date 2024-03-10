@@ -1,68 +1,33 @@
 ---
 
-
-# facts
-
-os_family: "{{ ansible_facts['os_family'] | lower }}"
-os_distribution: "{{ ansible_facts['distribution'] | lower }}"
-os_version: "{{ ansible_facts['distribution_major_version'] | lower }}"
-
 # postgres
-
-postgres_version: "15"
 
 postgres_vendor: "postgresql"
 postgres_edition: "std"
 postgres_cluster_type: "native"
 
-# postgres diffs
-
-postgresql_dict:
-  altlinux:
-    postgres_bin: "/usr/bin"
-    postgres_packages:
-      - "postgresql{{ postgres_version }}"
-      - "postgresql{{ postgres_version }}-server"
-      - "postgresql{{ postgres_version }}-contrib"
-    postgres_packages_ext: []
-    postgres_home: "/var/lib/pgsql"
-    postgres_data: "/var/lib/pgsql/data"
-    postgres_conf: "/var/lib/pgsql/conf"
-    postgres_log: "/var/log/pgsql"
-    postgres_service: "postgresql.service"
-    postgres_service_source: "postgresql.service-altlinux.j2"
-
-postgrespro_dict:
-  altlinux:
-
-postgres_dict:
-  postgresql: "{{ postgresql_dict }}"
-  postgrespro: "{{ postgrespro_dict }}"
-
-postgres_cluster_dict:
-  native:
-    postgres_service_enabled: True
-  patroni:
-    postgres_service_enabled: False
-
-postgres_bin: "{{ postgres_dict[postgres_vendor][os_family].postgres_bin }}"
-postgres_packages: "{{ postgres_dict[postgres_vendor][os_family].postgres_packages }}"
-postgres_packages_ext: "{{ postgres_dict[postgres_vendor][os_family].postgres_packages_ext }}"
-postgres_home: "{{ postgres_dict[postgres_vendor][os_family].postgres_home }}"
-postgres_service: "{{ postgres_dict[postgres_vendor][os_family].postgres_service }}"
-postgres_service_source: "{{ postgres_dict[postgres_vendor][os_family].postgres_service_source }}"
+postgres_version: "{{ postgres_version_dict[postgres_vendor][postgres_os_family] }}"
+postgres_bin: "{{ postgres_dict.postgres_bin }}"
+postgres_packages: "{{ postgres_dict.postgres_packages }}"
+postgres_packages_ext: "{{ postgres_dict.postgres_packages_ext }}"
+postgres_home: "{{ postgres_dict.postgres_home }}"
+postgres_service: "{{ postgres_dict.postgres_service }}"
+postgres_service_source: "{{ postgres_dict.postgres_service_source }}"
+postgres_service_default: "{{ postgres_dict.postgres_service_default }}"
 postgres_service_enabled: "{{ postgres_cluster_dict[postgres_cluster_type].postgres_service_enabled }}"
-postgres_cluster_username: "replication"
-#postgres_cluster_password: omit
-postgres_cluster_hosts: []
-postgres_backup_hosts: []
-
-postgres_data: "{{ postgres_dict[postgres_vendor][os_family].postgres_data }}"
-postgres_conf: "{{ postgres_dict[postgres_vendor][os_family].postgres_conf }}"
-postgres_log: "{{ postgres_dict[postgres_vendor][os_family].postgres_log }}"
+postgres_data: "{{ postgres_dict.postgres_data }}"
+postgres_conf: "{{ postgres_dict.postgres_conf }}"
+postgres_log: "{{ postgres_dict.postgres_log }}"
 
 # postgres conf
 
+postgres_superuser: "postgres"
+postgres_replication: "replication"
+postgres_replication_password: "replication11password"
+postgres_backup: "backup"
+postgres_backup_password: "backup11password"
+
+postgres_default_vars: "{{ postgres_dict.postgres_default_vars }}"
 postgres_user_vars:
   - name: "PATH"
     value: "$PATH:~/dba/scripts"
@@ -83,10 +48,7 @@ postgres_backup_hosts: []
 postgres_initdb_hostname: "{{ inventory_hostname }}"
 postgres_initdb_ip: "{{ (postgres_cluster_hosts | items2dict(key_name='host', value_name='ip'))[postgres_initdb_hostname] }}"
 postgres_initdb_primary: "{{ postgres_bin }}/initdb --pgdata={{ postgres_data }} --locale=ru_RU.UTF-8 --encoding=UTF-8 --data-checksums"
-postgres_initdb_standby: "{{ postgres_bin }}/pg_basebackup -h {{ postgres_initdb_ip }} -p {{ postgres_port }} -U {{ postgres_cluster_username }} -R -X stream -w -D {{ postgres_data }}"
-postgres_initdb_roles: []
-postgres_initdb_databases: []
-postgres_initdb_sql: []
+postgres_initdb_standby: "{{ postgres_bin }}/pg_basebackup -h {{ postgres_initdb_ip }} -p {{ postgres_port }} -U {{ postgres_replication }} -R -X stream -w -D {{ postgres_data }}"
 
 # postgres install options
 
